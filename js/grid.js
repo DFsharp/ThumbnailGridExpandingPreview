@@ -163,9 +163,9 @@ $.fn.imagesLoaded = function( callback ) {
 
 var Grid = (function() {
 		// grid selector
-		var $selector = '#og-grid', 
+		var $selector = '.og-grid',
 		// list of items
-		$grid = $( $selector ),
+		$grid = $("#og-grid, #og-grid2, #og-grid3, #og-grid4, #og-grid5"),//$( $selector ),
 		// the items
 		$items = $grid.children( 'li' ),
 		// current expanded item's index
@@ -199,7 +199,7 @@ var Grid = (function() {
 		};
 
 	function init( config ) {
-		
+
 		// the settings..
 		settings = $.extend( true, {}, settings, config );
 		// preload all images
@@ -247,16 +247,16 @@ var Grid = (function() {
 	}
 
 	function initEvents() {
-		
+
 		// when clicking an item, show the preview with the item´s info and large image.
 		// close the item if already expanded.
 		// also close if clicking on the item´s cross
 		initItemsEvents( $items );
-		
+
 		// on window resize get the window´s size again
 		// reset some values..
 		$window.on( 'debouncedresize', function() {
-			
+
 			scrollExtra = 0;
 			previewPos = -1;
 			// save item´s offset
@@ -313,7 +313,7 @@ var Grid = (function() {
 				preview.update( $item );
 				return false;
 			}
-			
+
 		}
 
 		// update previewPos
@@ -328,8 +328,14 @@ var Grid = (function() {
 	function hidePreview() {
 		current = -1;
 		var preview = $.data( this, 'preview' );
+
 		preview.close();
+
 		$.removeData( this, 'preview' );
+		$(".og-expander").remove();
+		$(".og-expanded").removeClass("og-expanded");
+		$("li.grid").css('height','250px');
+
 	}
 
 	// the preview obj / overlay
@@ -347,12 +353,13 @@ var Grid = (function() {
 			this.$description = $( '<p></p>' );
 			var detailAppends = [this.$title, this.$description];
 			if (settings.showVisitButton === true) {
-				this.$href = $( '<a href="#">Visit website</a>' );
+				this.$href = $( '' );
 				detailAppends.push(this.$href);
 			}
 			this.$details = $( '<div class="og-details"></div>' ).append(detailAppends);
 			this.$loading = $( '<div class="og-loading"></div>' );
-			this.$fullimage = $( '<div class="og-fullimg"></div>' ).append( this.$loading );
+
+			this.$fullimage = $( '<div class="og-fullimg slick-single"></div>' ).append( this.$loading );
 			this.$closePreview = $( '<span class="og-close"></span>' );
 			this.$previewInner = $( '<div class="og-expander-inner"></div>' ).append( this.$closePreview, this.$fullimage, this.$details );
 			this.$previewEl = $( '<div class="og-expander"></div>' ).append( this.$previewInner );
@@ -368,14 +375,17 @@ var Grid = (function() {
 			if( $item ) {
 				this.$item = $item;
 			}
-			
+
 			// if already expanded remove class "og-expanded" from current item and add it to new item
 			if( current !== -1 ) {
+			    
 				var $currentItem = $items.eq( current );
-				$currentItem.removeClass( 'og-expanded' );
+				$('.og-expanded').removeClass( 'og-expanded' );
 				this.$item.addClass( 'og-expanded' );
 				// position the preview correctly
 				this.positionPreview();
+                
+				
 			}
 
 			// update current value
@@ -387,9 +397,15 @@ var Grid = (function() {
 					href : $itemEl.attr( 'href' ),
 					largesrc : $itemEl.data( 'largesrc' ),
 					title : $itemEl.data( 'title' ),
-					description : $itemEl.data( 'description' )
+					description : $itemEl.data( 'description' ),
+					slick : $itemEl.data('slick').split('|')
 				};
-
+			if ($('.slick-single').hasClass('slick-initialized'))
+			{
+			    $('.slick-single').slick('unslick');
+			    $('.slick-item').remove();
+			}
+			    
 			this.$title.html( eldata.title );
 			this.$description.html( eldata.description );
 			if (settings.showVisitButton === true) {
@@ -397,7 +413,7 @@ var Grid = (function() {
 			}
 
 			var self = this;
-			
+
 			// remove the current image in the preview
 			if( typeof self.$largeImg != 'undefined' ) {
 				self.$largeImg.remove();
@@ -405,23 +421,47 @@ var Grid = (function() {
 
 			// preload large image and add it to the preview
 			// for smaller screens we don´t display the large image (the media query will hide the fullimage wrapper)
+			//if( self.$fullimage.is( ':visible' ) ) {
+			//	this.$loading.show();
+			//	$( '<img/>' ).load( function() {
+			//		var $img = $( this );
+			//		if( $img.attr( 'src' ) === self.$item.children('a').data( 'largesrc' ) ) {
+			//			self.$loading.hide();
+			//			self.$fullimage.find( 'img' ).remove();
+			//			self.$largeImg = $img.fadeIn( 350 );
+			//			self.$fullimage.append( self.$largeImg );
+			//		}
+			//	} ).attr( 'src', eldata.largesrc );
+			//}
 			if( self.$fullimage.is( ':visible' ) ) {
 				this.$loading.show();
-				$( '<img/>' ).load( function() {
-					var $img = $( this );
-					if( $img.attr( 'src' ) === self.$item.children('a').data( 'largesrc' ) ) {
-						self.$loading.hide();
-						self.$fullimage.find( 'img' ).remove();
-						self.$largeImg = $img.fadeIn( 350 );
-						self.$fullimage.append( self.$largeImg );
-					}
-				} ).attr( 'src', eldata.largesrc );	
+				self.$fullimage.find('img').remove();
+				self.$loading.hide();
+				$('.og-loading').remove();
+				for (var i = 0; i < eldata.slick.length; i++) {
+						var newImg = $("<img style='width:50%;'/>").attr('src',eldata.slick[i]);
+						var div = $("<div class='slick-item'></div>").append(newImg);
+
+
+						self.$largeImg = div.fadeIn(350);
+						self.$fullimage.append(self.$largeImg);
+
+				}
+				$('.slick-single').slick({
+			    accessibility: true,
+			    autoplay: false,
+			    arrows: true,
+					adaptiveHeight: true,
+					variableWidth:true,
+					dots:true
+
+			  });
 			}
 
 		},
 		open : function() {
 
-			setTimeout( $.proxy( function() {	
+			setTimeout( $.proxy( function() {
 				// set the height for the preview and the item
 				this.setHeights();
 				// scroll to position the preview in the right place
@@ -436,8 +476,13 @@ var Grid = (function() {
 					if( support ) {
 						$( this ).off( transEndEventName );
 					}
+
 					self.$item.removeClass( 'og-expanded' );
+
 					self.$previewEl.remove();
+
+
+
 				};
 
 			setTimeout( $.proxy( function() {
@@ -455,7 +500,7 @@ var Grid = (function() {
 				}
 
 			}, this ), 25 );
-			
+
 			return false;
 
 		},
@@ -501,7 +546,7 @@ var Grid = (function() {
 			var position = this.$item.data( 'offsetTop' ),
 				previewOffsetT = this.$previewEl.offset().top - scrollExtra,
 				scrollVal = this.height + this.$item.data( 'height' ) + marginExpanded <= winsize.height ? position : this.height < winsize.height ? previewOffsetT - ( winsize.height - this.height ) : previewOffsetT;
-			
+
 			$body.animate( { scrollTop : scrollVal }, settings.speed );
 
 		},
@@ -514,7 +559,7 @@ var Grid = (function() {
 		}
 	}
 
-	return { 
+	return {
 		init : init,
 		addItems : addItems
 	};
